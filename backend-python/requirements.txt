@@ -4,8 +4,6 @@ python-dotenv
 pydantic
 langchain
 langchain-community
-langchain-huggingface
 langchain-google-genai
 chromadb
 pypdf
-sentence-transformers

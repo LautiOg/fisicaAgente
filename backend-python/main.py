@@ -13,8 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -22,8 +21,8 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # ── Configuración ──────────────────────────────────────────────────────────────
 DOCS_DIR      = os.path.join(os.path.dirname(__file__), "docs")
-CHROMA_DIR    = os.path.join(os.path.dirname(__file__), "chroma_db")
-INDEXED_FILE  = os.path.join(os.path.dirname(__file__), "indexed_files.json")
+CHROMA_DIR    = os.path.join(os.path.dirname(__file__), "chroma_db_google") 
+INDEXED_FILE  = os.path.join(os.path.dirname(__file__), "indexed_files_google.json")
 
 LLM_MODEL = "gemini-flash-latest"
 
@@ -31,18 +30,11 @@ LLM_MODEL = "gemini-flash-latest"
 API_KEYS = os.getenv("GOOGLE_API_KEY", "").split(",")
 current_key_index = 0
 
-os.makedirs(DOCS_DIR,   exist_ok=True)
-os.makedirs(CHROMA_DIR, exist_ok=True)
-
-def _load_indexed() -> set:
-    if os.path.exists(INDEXED_FILE):
-        with open(INDEXED_FILE) as f: return set(json.load(f))
-    return set()
-
-def _save_indexed(indexed: set):
-    with open(INDEXED_FILE, "w") as f: json.dump(list(indexed), f)
-
-EMBEDDINGS = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# Usar la primera llave para los embeddings
+EMBEDDINGS = GoogleGenerativeAIEmbeddings(
+    model="models/embedding-001", 
+    google_api_key=API_KEYS[0].strip()
+)
 
 def _get_vectorstore():
     return Chroma(persist_directory=CHROMA_DIR, embedding_function=EMBEDDINGS)
