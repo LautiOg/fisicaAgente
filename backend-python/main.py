@@ -39,9 +39,12 @@ EMBEDDINGS = GoogleGenerativeAIEmbeddings(
 os.makedirs(DOCS_DIR,   exist_ok=True)
 os.makedirs(CHROMA_DIR, exist_ok=True)
 
+# ── Funciones de Utilidad (Deben ir primero) ───────────────────────────────────
 def _load_indexed() -> set:
     if os.path.exists(INDEXED_FILE):
-        with open(INDEXED_FILE) as f: return set(json.load(f))
+        try:
+            with open(INDEXED_FILE) as f: return set(json.load(f))
+        except: return set()
     return set()
 
 def _save_indexed(indexed: set):
@@ -51,20 +54,28 @@ def _get_vectorstore():
     return Chroma(persist_directory=CHROMA_DIR, embedding_function=EMBEDDINGS)
 
 def ingest_new_pdfs():
-    indexed = _load_indexed(); all_pdfs = [f for f in os.listdir(DOCS_DIR) if f.lower().endswith(".pdf")]
+    indexed = _load_indexed()
+    all_pdfs = [f for f in os.listdir(DOCS_DIR) if f.lower().endswith(".pdf")]
     new_pdfs = [f for f in all_pdfs if f not in indexed]
     if not new_pdfs: return
+    
     from langchain_community.document_loaders import PyPDFLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    
     for f in new_pdfs:
         try:
-            loader = PyPDFLoader(os.path.join(DOCS_DIR, f)); pages = loader.load(); chunks = splitter.split_documents(pages)
+            loader = PyPDFLoader(os.path.join(DOCS_DIR, f))
+            pages = loader.load()
+            chunks = splitter.split_documents(pages)
             Chroma.from_documents(documents=chunks, embedding=EMBEDDINGS, persist_directory=CHROMA_DIR)
             indexed.add(f)
-        except: continue
+        except Exception as e:
+            print(f"Error procesando {f}: {e}")
+            continue
     _save_indexed(indexed)
 
+# ── API FastAPI ────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ingest_new_pdfs()
@@ -106,7 +117,6 @@ CASO A — Cinemática lineal (MRU/MRUV): generá OBLIGATORIAMENTE 3 bloques [CH
   ]
 }}
 [/CHART]
-(Repetir estructura para Velocidad y Aceleración. Los valores de x e y deben ser SOLO números, sin unidades.)
 
 CASO B — Polares / Intrínsecas / Vectores: generá bloques [DIAGRAM]:
 [DIAGRAM]
@@ -121,7 +131,6 @@ CASO B — Polares / Intrínsecas / Vectores: generá bloques [DIAGRAM]:
   ]
 }}
 [/DIAGRAM]
-(x e y se calculan con x=r·cos(θ), y=r·sin(θ). Versores parten de la partícula.)
 
 ═══ RESOLUCIÓN ═══
 - Explicá PASO A PASO con rigor académico.
