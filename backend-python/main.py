@@ -36,6 +36,17 @@ EMBEDDINGS = GoogleGenerativeAIEmbeddings(
     google_api_key=API_KEYS[0].strip()
 )
 
+os.makedirs(DOCS_DIR,   exist_ok=True)
+os.makedirs(CHROMA_DIR, exist_ok=True)
+
+def _load_indexed() -> set:
+    if os.path.exists(INDEXED_FILE):
+        with open(INDEXED_FILE) as f: return set(json.load(f))
+    return set()
+
+def _save_indexed(indexed: set):
+    with open(INDEXED_FILE, "w") as f: json.dump(list(indexed), f)
+
 def _get_vectorstore():
     return Chroma(persist_directory=CHROMA_DIR, embedding_function=EMBEDDINGS)
 
